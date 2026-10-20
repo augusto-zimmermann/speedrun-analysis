@@ -1,30 +1,30 @@
 library(tidyverse)
-library(ggplot2)
 library(lubridate)
+library(dplyr)
 
 df <- read_csv("runs-data.csv")
 head(df, 5)
+
 # Limpieza de variables
 df_clean <- df %>%
-  # Filtrar solo ejecuciones verificadas (descarta las rechazadas)
-  filter(status == "verified") %>%
-  # Parsear fecha y extraer el año como variable numerica
-  mutate(
-    date_parsed = as.Date(date),
-    year = year(date_parsed)
+  # Dropeamos las columnas que no vamos a usar
+  select(-c(realTime, realTimeNoLoads, inGameTime, levelId, examiner, variablesAndValues, verifiedDate, statusReason)) %>%
+  # Filtra solo ejecuciones verificadas y tiempos positivos
+  filter(
+    status == "verified",
+    primaryTime > 0
   ) %>%
-  # Filtrar filas con nulos en las variables clave del modelo
-  drop_na(time_seconds, platform, year) %>%
-  # Asegurar tiempos positivos
-  filter(time_seconds > 0)
-
-# Verificacion de los resultados
-cat("=== VERIFICACIÓN DEL DATASET LIMPIO ===\n")
-cat("Filas originales:", nrow(df), "\n")
-cat("Filas tras la limpieza:", nrow(df_clean), "\n\n")
+  # Extrae el año como variable numerica (gracias lubridate)
+  mutate(
+    year = year(date)
+  ) %>%
+  filter(year > 2024) %>%
+  # Dropea filas con nulos en las variables clave del modelo
+  drop_na(platform, year)
 
 # Estructura del dataset limpio
+head(df_clean, 5)
 glimpse(df_clean)
 
 # Guardar el archivo limpio
-write_csv(df_clean, "runs_clean.csv")
+write_csv(df_clean, "runs-clean.csv")
